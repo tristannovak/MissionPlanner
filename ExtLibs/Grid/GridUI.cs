@@ -610,11 +610,11 @@ namespace MissionPlanner
                 {
                     if (plugin.Host.cs.firmware == MainV2.Firmwares.ArduCopter2)
                     {
-                        plugin.Host.AddWPtoList(MAVLink.MAV_CMD.TAKEOFF, 0, 0, 0, 0, 0, 0, 30 * MainV2.comPort.MAV.cs.multiplierdist);
+                        plugin.Host.AddWPtoList(MAVLink.MAV_CMD.TAKEOFF, 0, 0, 0, 0, 0, 0, (int)(30 * MainV2.comPort.MAV.cs.multiplierdist));
                     }
                     else
                     {
-                        plugin.Host.AddWPtoList(MAVLink.MAV_CMD.TAKEOFF, 20, 0, 0, 0, 0, 0, 30 * MainV2.comPort.MAV.cs.multiplierdist);
+                        plugin.Host.AddWPtoList(MAVLink.MAV_CMD.TAKEOFF, 20, 0, 0, 0, 0, 0, (int)(30 * MainV2.comPort.MAV.cs.multiplierdist));
                     }
                 }
 
@@ -623,30 +623,38 @@ namespace MissionPlanner
                     plugin.Host.AddWPtoList(MAVLink.MAV_CMD.DO_CHANGE_SPEED, 0, (int)numericUpDownFlySpeed.Value, 0, 0, 0, 0, 0);
                 }
 
-                if (rad_trigdist.Checked)
-                {
-                    plugin.Host.AddWPtoList(MAVLink.MAV_CMD.DO_SET_CAM_TRIGG_DIST, (float)NUM_spacing.Value, 0, 0, 0, 0, 0, 0);
-                }
-
+                int i = 0;
                 grid.ForEach(plla =>
                 {
-                    if (plla.Tag == "M")
+                    if (i > 0)
                     {
-                        if (rad_repeatservo.Checked)
+                        if (plla.Tag == "M")
                         {
-                            AddWP(plla.Lng, plla.Lat, plla.Alt);
-                            plugin.Host.AddWPtoList(MAVLink.MAV_CMD.DO_REPEAT_SERVO, (float)num_reptservo.Value, (float)num_reptpwm.Value, 999, (float)num_repttime.Value, 0, 0, 0);
+                            if (rad_repeatservo.Checked)
+                            {
+                                AddWP(plla.Lng, plla.Lat, plla.Alt);
+                                plugin.Host.AddWPtoList(MAVLink.MAV_CMD.DO_REPEAT_SERVO, (float)num_reptservo.Value, (float)num_reptpwm.Value, 999, (float)num_repttime.Value, 0, 0, 0);
+                            }
+                            if (rad_digicam.Checked)
+                            {
+                                AddWP(plla.Lng, plla.Lat, plla.Alt);
+                                plugin.Host.AddWPtoList(MAVLink.MAV_CMD.DO_DIGICAM_CONTROL, 0, 0, 0, 0, 0, 0, 0);
+                            }
                         }
-                        if (rad_digicam.Checked)
+                        else
                         {
                             AddWP(plla.Lng, plla.Lat, plla.Alt);
-                            plugin.Host.AddWPtoList(MAVLink.MAV_CMD.DO_DIGICAM_CONTROL, 0, 0, 0, 0, 0, 0, 0);
                         }
                     }
                     else
                     {
                         AddWP(plla.Lng, plla.Lat, plla.Alt);
+                        if (rad_trigdist.Checked)
+                        {
+                            plugin.Host.AddWPtoList(MAVLink.MAV_CMD.DO_SET_CAM_TRIGG_DIST, (float)NUM_spacing.Value, 0, 0, 0, 0, 0, 0);
+                        }
                     }
+                    ++i;
                 });
 
                 if (rad_trigdist.Checked)
@@ -662,13 +670,16 @@ namespace MissionPlanner
 
                 if (CHK_toandland.Checked)
                 {
-                    if (CHK_toandland_RTL.Checked)
+                    if (plugin.Host.cs.firmware == MainV2.Firmwares.ArduCopter2)
                     {
-                        plugin.Host.AddWPtoList(MAVLink.MAV_CMD.RETURN_TO_LAUNCH, 0, 0, 0, 0, 0, 0, 0);
-                    }
-                    else
-                    {
-                        plugin.Host.AddWPtoList(MAVLink.MAV_CMD.LAND, 0, 0, 0, 0, plugin.Host.cs.HomeLocation.Lng, plugin.Host.cs.HomeLocation.Lat, 0);
+                        if (CHK_toandland_RTL.Checked)
+                        {
+                            plugin.Host.AddWPtoList(MAVLink.MAV_CMD.RETURN_TO_LAUNCH, 0, 0, 0, 0, 0, 0, 0);
+                        }
+                        else
+                        {
+                            plugin.Host.AddWPtoList(MAVLink.MAV_CMD.LAND, 0, 0, 0, 0, plugin.Host.cs.HomeLocation.Lng, plugin.Host.cs.HomeLocation.Lat, 0);
+                        }
                     }
                 }
 
@@ -688,14 +699,21 @@ namespace MissionPlanner
 
         private void AddWP(double Lng, double Lat, double Alt)
         {
-            if (CHK_copter_headinghold.Checked)
+            if (plugin.Host.cs.firmware == MainV2.Firmwares.ArduCopter2)
             {
-                plugin.Host.AddWPtoList(MAVLink.MAV_CMD.CONDITION_YAW, (int)NUM_copter_headinghold.Value, 0, 0, 0, 0, 0, 0);
-            }
+                if (CHK_copter_headinghold.Checked)
+                {
+                    plugin.Host.AddWPtoList(MAVLink.MAV_CMD.CONDITION_YAW, (int)NUM_copter_headinghold.Value, 0, 0, 0, 0, 0, 0);
+                }
 
-            if ((int)NUM_copter_delay.Value > 0)
-            {
-                plugin.Host.AddWPtoList(MAVLink.MAV_CMD.WAYPOINT, (int)NUM_copter_delay.Value, 0, 0, 0, Lng, Lat, Alt * MainV2.comPort.MAV.cs.multiplierdist);
+                if ((int)NUM_copter_delay.Value > 0)
+                {
+                    plugin.Host.AddWPtoList(MAVLink.MAV_CMD.WAYPOINT, (int)NUM_copter_delay.Value, 0, 0, 0, Lng, Lat, Alt * MainV2.comPort.MAV.cs.multiplierdist);
+                }
+                else
+                {
+                    plugin.Host.AddWPtoList(MAVLink.MAV_CMD.WAYPOINT, 0, 0, 0, 0, Lng, Lat, Alt * MainV2.comPort.MAV.cs.multiplierdist);
+                }
             }
             else
             {
@@ -1015,6 +1033,14 @@ namespace MissionPlanner
             //CHK_advanced_CheckedChanged(null, null);
 
             trackBar1.Value = (float)map.Zoom;
+
+            // Set if this is a copter
+            if (plugin.Host.cs.firmware == MainV2.Firmwares.ArduCopter2)
+            {
+                CHK_toandland.Text = "Add Takeoff and Land WP's";
+                CHK_toandland_RTL.Visible = true;
+                groupBox_copter.Visible = true;
+            }
         }
 
         private void TXT_TextChanged(object sender, EventArgs e)
