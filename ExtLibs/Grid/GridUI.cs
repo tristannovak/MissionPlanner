@@ -64,6 +64,7 @@ namespace MissionPlanner
             public float imagewidth;
             public float imageheight;
         }
+
         public struct GridData
         {
             public List<PointLatLngAlt> poly;

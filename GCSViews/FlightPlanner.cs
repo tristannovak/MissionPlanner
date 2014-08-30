@@ -398,7 +398,7 @@ namespace MissionPlanner.GCSViews
             comboBoxMapType.SelectedItem = MainMap.MapProvider;
 
             comboBoxMapType.SelectedValueChanged += new System.EventHandler(this.comboBoxMapType_SelectedValueChanged);
-           
+
             MainMap.RoutesEnabled = true;
 
             //MainMap.MaxZoom = 18;
@@ -440,11 +440,11 @@ namespace MissionPlanner.GCSViews
             objectsoverlay.Markers.Clear();
 
             // set current marker
-            currentMarker = new GMarkerGoogle(MainMap.Position,GMarkerGoogleType.red);
+            currentMarker = new GMarkerGoogle(MainMap.Position, GMarkerGoogleType.red);
             //top.Markers.Add(currentMarker);
 
             // map center
-            center = new GMarkerGoogle(MainMap.Position,GMarkerGoogleType.none);
+            center = new GMarkerGoogle(MainMap.Position, GMarkerGoogleType.none);
             top.Markers.Add(center);
 
             MainMap.Zoom = 3;
@@ -474,7 +474,7 @@ namespace MissionPlanner.GCSViews
             {
                 try
                 {
-                    var index = GMapProviders.List.FindIndex(x =>  (x.Name == MainV2.getConfig("MapType")) );
+                    var index = GMapProviders.List.FindIndex(x => (x.Name == MainV2.getConfig("MapType")));
 
                     if (index != -1)
                         comboBoxMapType.SelectedIndex = index;
@@ -1615,7 +1615,7 @@ namespace MissionPlanner.GCSViews
 
                     byte cmd = (byte)(int)Enum.Parse(typeof(MAVLink.MAV_CMD), Commands.Rows[a].Cells[Command.Index].Value.ToString(), false);
 
-                    if (cmd < (byte)MAVLink.MAV_CMD.LAST && double.Parse(Commands[Alt.Index,a].Value.ToString()) < double.Parse(TXT_altwarn.Text))
+                    if (cmd < (byte)MAVLink.MAV_CMD.LAST && double.Parse(Commands[Alt.Index, a].Value.ToString()) < double.Parse(TXT_altwarn.Text))
                     {
                         if (cmd != (byte)MAVLink.MAV_CMD.TAKEOFF &&
                             cmd != (byte)MAVLink.MAV_CMD.LAND &&
@@ -1623,6 +1623,24 @@ namespace MissionPlanner.GCSViews
                         {
                             CustomMessageBox.Show("Low alt on WP#" + (a + 1) + "\nPlease reduce the alt warning, or increase the altitude");
                             return;
+                        }
+                    }
+                }
+                
+                // Check change type of DO_CHANGE_SPEED depending on firmware
+                if (Commands.Rows[a].Cells[Command.Index].Value.ToString().Contains("DO_CHANGE_SPEED"))
+                {
+                    if (MainV2.comPort.MAV.cs.firmware == MainV2.Firmwares.ArduCopter2)
+                    {
+                        long build = GetCopterBuild();
+
+                        if (build <= 3999516811)
+                        {
+                            if (Convert.ToInt32(Commands.Rows[a].Cells[Param2.Index].Value) != 0)
+                            {
+                                Commands.Rows[a].Cells[Param1.Index].Value = Commands.Rows[a].Cells[Param2.Index].Value;
+                                Commands.Rows[a].Cells[Param2.Index].Value = 0;
+                            }
                         }
                     }
                 }
@@ -6072,6 +6090,32 @@ Column 1: Field type (RALLY is the only one at the moment -- may have RALLY_LAND
                     MainMap.ZoomAndCenterMarkers(drawnpolygonsoverlay.Id);
                 }
             }
+        }
+
+        private long GetCopterBuild()
+        {
+            int messagecount = MainV2.comPort.MAV.cs.messages.Count;
+            StringBuilder message = new StringBuilder();
+            long build = 0;
+
+            if (MainV2.comPort.MAV.cs.firmware == MainV2.Firmwares.ArduCopter2)
+            {
+                if (messagecount > 0)
+                {
+                    MainV2.comPort.MAV.cs.messages.ForEach(x =>
+                    {
+                        if (x.Contains("ArduCopter"))
+                        {
+                            int index1 = x.IndexOf("(") + 1;
+                            int index2 = x.IndexOf(")");
+                            int length = index2 - index1;
+                            string sub = x.Substring(index1, length);
+                            build = Convert.ToInt64(sub, 16);
+                        }
+                    });
+                }
+            }
+            return build;
         }
     }
 }
